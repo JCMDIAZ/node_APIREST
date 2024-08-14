@@ -2,10 +2,16 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const swaggerUI = require("swagger-ui-express");
+const openApiConfigration = require("./docs/swagger");
 const morganBody = require("morgan-body");
 const loggerStream = require("./utils/handleLogger");
-const dbConnect = require('./config/mongo');
+const dbConnectNoSql = require('./config/mongo');
+const {dbConnectMySQL} = require("./config/mysql");
 const app = express();
+
+const ENGINE_DB = process.env.ENGINE_DB;
+const NODE_ENV = process.env.NODE_ENV || 'development'
 
 app.use(cors());
 app.use(express.json());
@@ -23,7 +29,11 @@ morganBody(app,{
 
 const port = process.env.port || 3000;
 
+/**
+ * Definir ruta de documentación
+ */
 
+app.use('/documentation', swaggerUI.serve, swaggerUI.setup(openApiConfigration))
 
 /**
  * Aqui invocamos a las rutas
@@ -31,8 +41,13 @@ const port = process.env.port || 3000;
 
 app.use("/api",require("./routes"));
 
-app.listen(port, () => {
-    console.log(`Tu puerto esta lista por http://localhost:${port}`);
-});
+if(NODE_ENV !== 'test'){
+  app.listen(port);
+  /*app.listen(port, () => {
+      console.log(`Tu puerto esta lista por http://localhost:${port}`);
+  });*/
+}
 
-dbConnect();
+(ENGINE_DB === 'nosql') ? dbConnectNoSql() : dbConnectMySQL();
+
+module.exports = app;
